@@ -7,7 +7,7 @@
 # Developed by: Rafael Padilla (rafael.padilla@smt.ufrj.br)                               #
 #        SMT - Signal Multimedia and Telecommunications Lab                               #
 #        COPPE - Universidade Federal do Rio de Janeiro                                   #
-#        Last modification: Oct 9th 2018                                                 #
+#        Last modification: Oct 9th 2018                                                  #
 ###########################################################################################
 
 import argparse
@@ -18,10 +18,10 @@ import shutil
 import sys
 
 import _init_paths
-from BoundingBox import BoundingBox
-from BoundingBoxes import BoundingBoxes
-from Evaluator import *
-from utils import BBFormat
+from lib.BoundingBox import BoundingBox
+from lib.BoundingBoxes import BoundingBoxes
+from lib.Evaluator import *
+from lib.utils import *
 
 
 # Validate formats
@@ -89,13 +89,8 @@ def ValidatePaths(arg, nameArg, errors):
     return arg
 
 
-def getBoundingBoxes(directory,
-                     isGT,
-                     bbFormat,
-                     coordType,
-                     allBoundingBoxes=None,
-                     allClasses=None,
-                     imgSize=(0, 0)):
+def getBoundingBoxes(directory, isGT, bbFormat, coordType,
+                     allBoundingBoxes=None, allClasses=None, imgSize=(0, 0)):
     """Read txt files containing bounding boxes (ground truth and detections)."""
     if allBoundingBoxes is None:
         allBoundingBoxes = BoundingBoxes()
@@ -105,13 +100,8 @@ def getBoundingBoxes(directory,
     os.chdir(directory)
     files = glob.glob("*.txt")
     files.sort()
+
     # Read GT detections from txt file
-    # Each line of the files in the groundtruths folder represents a ground truth bounding box
-    # (bounding boxes that a detector should detect)
-    # Each value of each line is  "class_id, x, y, width, height" respectively
-    # Class_id represents the class of the bounding box
-    # x, y represents the most top-left coordinates of the bounding box
-    # x2, y2 represents the most bottom-right coordinates of the bounding box
     for f in files:
         nameOfImage = f.replace(".txt", "")
         fh1 = open(f, "r")
@@ -127,17 +117,8 @@ def getBoundingBoxes(directory,
                 y = float(splitLine[2])
                 w = float(splitLine[3])
                 h = float(splitLine[4])
-                bb = BoundingBox(
-                    nameOfImage,
-                    idClass,
-                    x,
-                    y,
-                    w,
-                    h,
-                    coordType,
-                    imgSize,
-                    BBType.GroundTruth,
-                    format=bbFormat)
+                bb = BoundingBox(nameOfImage, idClass, x, y, w, h,
+                                 coordType, imgSize, BBType.GroundTruth, format=bbFormat)
             else:
                 # idClass = int(splitLine[0]) #class
                 idClass = (splitLine[0])  # class
@@ -146,18 +127,8 @@ def getBoundingBoxes(directory,
                 y = float(splitLine[3])
                 w = float(splitLine[4])
                 h = float(splitLine[5])
-                bb = BoundingBox(
-                    nameOfImage,
-                    idClass,
-                    x,
-                    y,
-                    w,
-                    h,
-                    coordType,
-                    imgSize,
-                    BBType.Detected,
-                    confidence,
-                    format=bbFormat)
+                bb = BoundingBox(nameOfImage, idClass, x, y, w, h,
+                                 coordType, imgSize, BBType.Detected, confidence, format=bbFormat)
             allBoundingBoxes.addBoundingBox(bb)
             if idClass not in allClasses:
                 allClasses.append(idClass)
@@ -176,9 +147,10 @@ parser = argparse.ArgumentParser(
     'algorithms.\nThe current implemention runs the Pascal VOC metrics.\nFor further references, '
     'please check:\nhttps://github.com/rafaelpadilla/Object-Detection-Metrics',
     epilog="Developed by: Rafael Padilla (rafael.padilla@smt.ufrj.br)")
+
 # formatter_class=RawTextHelpFormatter)
 parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + VERSION)
-# Positional arguments
+
 # Mandatory
 parser.add_argument(
     '-gt',
@@ -187,6 +159,7 @@ parser.add_argument(
     default=os.path.join(currentPath, 'groundtruths'),
     metavar='',
     help='folder containing your ground truth bounding boxes')
+
 parser.add_argument(
     '-det',
     '--detfolder',
@@ -194,6 +167,8 @@ parser.add_argument(
     default=os.path.join(currentPath, 'detections'),
     metavar='',
     help='folder containing your detected bounding boxes')
+
+
 # Optional
 parser.add_argument(
     '-t',
@@ -203,6 +178,7 @@ parser.add_argument(
     default=0.5,
     metavar='',
     help='IOU threshold. Default 0.5')
+
 parser.add_argument(
     '-gtformat',
     dest='gtFormat',
@@ -211,6 +187,7 @@ parser.add_argument(
     help='format of the coordinates of the ground truth bounding boxes: '
     '(\'xywh\': <left> <top> <width> <height>)'
     ' or (\'xyrb\': <left> <top> <right> <bottom>)')
+
 parser.add_argument(
     '-detformat',
     dest='detFormat',
@@ -219,6 +196,7 @@ parser.add_argument(
     help='format of the coordinates of the detected bounding boxes '
     '(\'xywh\': <left> <top> <width> <height>) '
     'or (\'xyrb\': <left> <top> <right> <bottom>)')
+
 parser.add_argument(
     '-gtcoords',
     dest='gtCoordinates',
@@ -226,6 +204,7 @@ parser.add_argument(
     metavar='',
     help='reference of the ground truth bounding box coordinates: absolute '
     'values (\'abs\') or relative to its image size (\'rel\')')
+
 parser.add_argument(
     '-detcoords',
     default='abs',
@@ -233,28 +212,37 @@ parser.add_argument(
     metavar='',
     help='reference of the ground truth bounding box coordinates: '
     'absolute values (\'abs\') or relative to its image size (\'rel\')')
+
 parser.add_argument(
     '-imgsize',
     dest='imgSize',
     metavar='',
     help='image size. Required if -gtcoords or -detcoords are \'rel\'')
+
 parser.add_argument(
-    '-sp', '--savepath', dest='savePath', metavar='', help='folder where the plots are saved')
+    '-sp',
+    '--savepath',
+    dest='savePath',
+    metavar='',
+    help='folder where the plots are saved')
+
 parser.add_argument(
     '-np',
     '--noplot',
     dest='showPlot',
     action='store_false',
     help='no plot is shown during execution')
-args = parser.parse_args()
 
+args = parser.parse_args()
 iouThreshold = args.iouThreshold
 
 # Arguments validation
 errors = []
+
 # Validate formats
 gtFormat = ValidateFormats(args.gtFormat, '-gtformat', errors)
 detFormat = ValidateFormats(args.detFormat, '-detformat', errors)
+
 # Groundtruth folder
 if ValidateMandatoryArgs(args.gtFolder, '-gt/--gtfolder', errors):
     gtFolder = ValidatePaths(args.gtFolder, '-gt/--gtfolder', errors)
@@ -263,6 +251,7 @@ else:
     gtFolder = os.path.join(currentPath, 'groundtruths')
     if os.path.isdir(gtFolder) is False:
         errors.append('folder %s not found' % gtFolder)
+
 # Coordinates types
 gtCoordType = ValidateCoordinatesTypes(args.gtCoordinates, '-gtCoordinates', errors)
 detCoordType = ValidateCoordinatesTypes(args.detCoordinates, '-detCoordinates', errors)
@@ -271,6 +260,7 @@ if gtCoordType == CoordinatesType.Relative:  # Image size is required
     imgSize = ValidateImageSize(args.imgSize, '-imgsize', '-gtCoordinates', errors)
 if detCoordType == CoordinatesType.Relative:  # Image size is required
     imgSize = ValidateImageSize(args.imgSize, '-imgsize', '-detCoordinates', errors)
+
 # Detection folder
 if ValidateMandatoryArgs(args.detFolder, '-det/--detfolder', errors):
     detFolder = ValidatePaths(args.detFolder, '-det/--detfolder', errors)
@@ -283,6 +273,7 @@ if args.savePath is not None:
     savePath = ValidatePaths(args.savePath, '-sp/--savepath', errors)
 else:
     savePath = os.path.join(currentPath, 'results')
+
 # Validate savePath
 # If error, show error messages
 if len(errors) != 0:
@@ -308,6 +299,7 @@ if os.path.isdir(savePath) and os.listdir(savePath) :
 # Clear folder and save results
 shutil.rmtree(savePath, ignore_errors=True)
 os.makedirs(savePath)
+
 # Show plot during execution
 showPlot = args.showPlot
 
@@ -333,6 +325,7 @@ evaluator = Evaluator()
 acc_AP = 0
 validClasses = 0
 
+
 # Plot Precision x Recall curve
 detections = evaluator.PlotPrecisionRecallCurve(
     allBoundingBoxes,  # Object containing all bounding boxes (ground truths and detections)
@@ -348,7 +341,10 @@ f.write('Object Detection Metrics\n')
 f.write('https://github.com/rafaelpadilla/Object-Detection-Metrics\n\n\n')
 f.write('Average Precision (AP), Precision and Recall per class:')
 
+
 # each detection is a class
+sum_TP = 0
+sum_FP = 0
 for metricsPerClass in detections:
 
     # Get metric values per each class
@@ -359,6 +355,9 @@ for metricsPerClass in detections:
     totalPositives = metricsPerClass['total positives']
     total_TP = metricsPerClass['total TP']
     total_FP = metricsPerClass['total FP']
+    sum_TP += total_TP
+    sum_FP += total_FP
+
 
     if totalPositives > 0:
         validClasses = validClasses + 1
@@ -372,6 +371,9 @@ for metricsPerClass in detections:
         f.write('\nAP: %s' % ap_str)
         f.write('\nPrecision: %s' % prec)
         f.write('\nRecall: %s' % rec)
+
+print('TP: ', sum_TP)
+print('FP: ', sum_FP)
 
 mAP = acc_AP / validClasses
 mAP_str = "{0:.2f}%".format(mAP * 100)
