@@ -76,30 +76,31 @@ class Evaluator:
             if bb.getClassId() not in classes:
                 classes.append(bb.getClassId())
         classes = sorted(classes)
-        # Precision x Recall is obtained individually by each class
-        # Loop through by classes
+
+        # Loop through by classes, Precision x Recall is obtained individually by each class
         for c in classes:
-            # Get only detection of class c
-            dects = []
+            dects = []    # Get only detection of class c
             [dects.append(d) for d in detections if d[1] == c]
-            # Get only ground truths of class c
-            gts = []
+
+            gts = []    # Get only ground truths of class c
             [gts.append(g) for g in groundTruths if g[1] == c]
             npos = len(gts)
+
             # sort detections by decreasing confidence
             dects = sorted(dects, key=lambda conf: conf[2], reverse=True)
             TP = np.zeros(len(dects))
             FP = np.zeros(len(dects))
+
             # create dictionary with amount of gts for each image
             det = Counter([cc[0] for cc in gts])
             for key, val in det.items():
                 det[key] = np.zeros(val)
             # print("Evaluating class: %s (%d detections)" % (str(c), len(dects)))
+
             # Loop through detections
             for d in range(len(dects)):
                 # print('dect %s => %s' % (dects[d][0], dects[d][3],))
-                # Find ground truth image
-                gt = [gt for gt in gts if gt[0] == dects[d][0]]
+                gt = [gt for gt in gts if gt[0] == dects[d][0]]    # Find ground truth image
                 iouMax = sys.float_info.min
                 for j in range(len(gt)):
                     # print('Ground truth gt => %s' % (gt[j][3],))
@@ -107,21 +108,21 @@ class Evaluator:
                     if iou > iouMax:
                         iouMax = iou
                         jmax = j
+
                 # Assign detection as true positive/don't care/false positive
                 if iouMax >= IOUThreshold:
                     if det[dects[d][0]][jmax] == 0:
-                        TP[d] = 1  # count as true positive
-                        det[dects[d][0]][jmax] = 1  # flag as already 'seen'
+                        TP[d] = 1    # count as true positive
+                        det[dects[d][0]][jmax] = 1    # flag as already 'seen'
                         # print("TP")
                     else:
                         FP[d] = 1  # count as false positive
                         # print("FP")
-                # - A detected "cat" is overlaped with a GT "cat" with IOU >= IOUThreshold.
                 else:
                     FP[d] = 1  # count as false positive
                     # print("FP")
-            # compute precision, recall and average precision
-            acc_FP = np.cumsum(FP)
+
+            acc_FP = np.cumsum(FP)    # compute precision, recall and average precision
             acc_TP = np.cumsum(TP)
             rec = acc_TP / npos
             prec = np.divide(acc_TP, (acc_FP + acc_TP))
@@ -144,6 +145,7 @@ class Evaluator:
             }
             ret.append(r)
         return ret
+
 
     def PlotPrecisionRecallCurve(self,
                                  boundingBoxes,
@@ -288,6 +290,7 @@ class Evaluator:
                 plt.pause(0.05)
         return results
 
+
     @staticmethod
     def CalculateAveragePrecision(rec, prec):
         mrec = []
@@ -309,6 +312,7 @@ class Evaluator:
             ap = ap + np.sum((mrec[i] - mrec[i - 1]) * mpre[i])
         # return [ap, mpre[1:len(mpre)-1], mrec[1:len(mpre)-1], ii]
         return [ap, mpre[0:len(mpre) - 1], mrec[0:len(mpre) - 1], ii]
+
 
     @staticmethod
     # 11-point interpolated average precision
@@ -360,6 +364,7 @@ class Evaluator:
         rhoInterp = [i[1] for i in cc]
         return [ap, rhoInterp, recallValues, None]
 
+
     # For each detections, calculate IOU with reference
     @staticmethod
     def _getAllIOUs(reference, detections):
@@ -378,6 +383,7 @@ class Evaluator:
         # cv2.destroyWindow("comparing")
         return sorted(ret, key=lambda i: i[0], reverse=True)  # sort by iou (from highest to lowest)
 
+
     @staticmethod
     def iou(boxA, boxB):
         # if boxes dont intersect
@@ -389,6 +395,7 @@ class Evaluator:
         iou = interArea / union
         assert iou >= 0
         return iou
+
 
     # boxA = (Ax1,Ay1,Ax2,Ay2)
     # boxB = (Bx1,By1,Bx2,By2)
@@ -404,6 +411,7 @@ class Evaluator:
             return False  # boxA is below boxB
         return True
 
+
     @staticmethod
     def _getIntersectionArea(boxA, boxB):
         xA = max(boxA[0], boxB[0])
@@ -413,6 +421,7 @@ class Evaluator:
         # intersection area
         return (xB - xA + 1) * (yB - yA + 1)
 
+
     @staticmethod
     def _getUnionAreas(boxA, boxB, interArea=None):
         area_A = Evaluator._getArea(boxA)
@@ -420,6 +429,7 @@ class Evaluator:
         if interArea is None:
             interArea = Evaluator._getIntersectionArea(boxA, boxB)
         return float(area_A + area_B - interArea)
+
 
     @staticmethod
     def _getArea(box):

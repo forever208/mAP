@@ -283,19 +283,6 @@ if len(errors) != 0:
     [print(e) for e in errors]
     sys.exit()
 
-# # Check if path to save results already exists and is not empty
-# if os.path.isdir(savePath) and os.listdir(savePath) :
-#     key_pressed = ''
-#     while key_pressed.upper() not in ['Y', 'N']:
-#         print(f'Folder {savePath} already exists and may contain important results.\n')
-#         print(f'Enter \'Y\' to continue. WARNING: THIS WILL REMOVE ALL THE CONTENTS OF THE FOLDER!')
-#         print(f'Or enter \'N\' to abort and choose another folder to save the results.')
-#         key_pressed = input('')
-#
-#     if key_pressed.upper() == 'N':
-#         print('Process canceled')
-#         sys.exit()
-
 # Clear folder and save results
 shutil.rmtree(savePath, ignore_errors=True)
 os.makedirs(savePath)
@@ -314,11 +301,10 @@ showPlot = args.showPlot
 # print('showPlot %s' % showPlot)
 
 # Get groundtruth boxes
-allBoundingBoxes, allClasses = getBoundingBoxes(
-    gtFolder, True, gtFormat, gtCoordType, imgSize=imgSize)
+allBoundingBoxes, allClasses = getBoundingBoxes(gtFolder, True, gtFormat, gtCoordType, imgSize=imgSize)
+
 # Get detected boxes
-allBoundingBoxes, allClasses = getBoundingBoxes(
-    detFolder, False, detFormat, detCoordType, allBoundingBoxes, allClasses, imgSize=imgSize)
+allBoundingBoxes, allClasses = getBoundingBoxes(detFolder, False, detFormat, detCoordType, allBoundingBoxes, allClasses, imgSize=imgSize)
 allClasses.sort()
 
 evaluator = Evaluator()
@@ -345,6 +331,7 @@ f.write('Average Precision (AP), Precision and Recall per class:')
 # each detection is a class
 sum_TP = 0
 sum_FP = 0
+sum_GT = 0
 for metricsPerClass in detections:
 
     # Get metric values per each class
@@ -355,9 +342,10 @@ for metricsPerClass in detections:
     totalPositives = metricsPerClass['total positives']
     total_TP = metricsPerClass['total TP']
     total_FP = metricsPerClass['total FP']
+    total_positive = metricsPerClass['total positives']
     sum_TP += total_TP
     sum_FP += total_FP
-
+    sum_GT += total_positive
 
     if totalPositives > 0:
         validClasses = validClasses + 1
@@ -374,6 +362,7 @@ for metricsPerClass in detections:
 
 print('TP: ', sum_TP)
 print('FP: ', sum_FP)
+print('GroundTruth: ', sum_GT)
 
 mAP = acc_AP / validClasses
 mAP_str = "{0:.2f}%".format(mAP * 100)
